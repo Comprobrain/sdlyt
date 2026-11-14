@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Super Duper Lite YT
+GenericName=YouTube player and downloader
+Comment=Search, play and download YouTube videos
+Exec=sdlyt
+Icon=sdlyt
+StartupWMClass=Sdlyt
+Terminal=false
+Categories=AudioVideo;Video;Player;Network;
+Keywords=youtube;video;music;download;mpv;
+StartupNotify=false

@@ -1,0 +1,135 @@
+#!/bin/bash
+# Pi-Apps install script for Super Duper Lite YT
+# Pi-Apps rules: do NOT source api yourself. Use install_packages / error directly.
+#
+# EDIT ME before submitting:
+#   GITHUB_USER and REPO must point at the repo that hosts the pinned
+#   release tarball (tag v${VERSION}).
+
+set -e
+VERSION="1.1.0"
+GITHUB_USER="GITHUB_USER"       # <-- EDIT ME
+REPO="sdlyt"                    # <-- EDIT ME if your repo name differs
+
+APP_HOME="$HOME/.local/share/sdlyt"
+APP_DIR="$APP_HOME/app"
+VENV_DIR="$APP_HOME/venv"
+BIN_DIR="$HOME/.local/bin"
+YTDLP="$HOME/bin/yt-dlp"
+
+# --- system packages --------------------------------------------------------
+install_packages python3 python3-venv python3-tk python3-pil mpv ffmpeg || exit 1
+
+# --- download pinned release tarball ---------------------------------------
+URL="https://github.com/${GITHUB_USER}/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+if ! curl -fL --retry 3 -o "$TMP/app.tar.gz" "$URL"; then
+    error "Could not download ${URL}"
+fi
+
+tar -xzf "$TMP/app.tar.gz" -C "$TMP"
+SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+if [ -z "$SRC" ] || [ ! -f "$SRC/sdlyt.py" ]; then
+    error "Downloaded archive does not look like sdlyt (sdlyt.py missing)"
+fi
+
+# --- copy app to stable location -------------------------------------------
+mkdir -p "$APP_HOME"
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR"
+cp -a "$SRC/sdlyt" "$APP_DIR/"
+cp -a "$SRC/sdlyt.py" "$APP_DIR/"
+[ -f "$SRC/pyproject.toml" ]   && cp -a "$SRC/pyproject.toml" "$APP_DIR/"
+[ -f "$SRC/requirements.txt" ] && cp -a "$SRC/requirements.txt" "$APP_DIR/"
+[ -d "$SRC/tools" ]            && cp -a "$SRC/tools" "$APP_DIR/"
+[ -d "$SRC/packaging" ]        && cp -a "$SRC/packaging" "$APP_DIR/"
+[ -f "$SRC/README.md" ]        && cp -a "$SRC/README.md" "$APP_DIR/"
+
+# --- venv with system site packages ----------------------------------------
+python3 -m venv --system-site-packages "$VENV_DIR"
+"$VENV_DIR/bin/python" -m pip install --quiet --upgrade pip || true
+
+# --- hardware capability check for PySide6 ---------------------------------
+ARCH="$(uname -m)"
+RAM_MB=4096
+[ -f /proc/meminfo ] && RAM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
+PYSIDE_OK=0
+case "$ARCH" in
+    x86_64|amd64|aarch64|arm64)
+        [ "${RAM_MB:-4096}" -ge 1900 ] && PYSIDE_OK=1
+        ;;
+esac
+
+cd "$APP_DIR"
+if [ "$PYSIDE_OK" -eq 1 ]; then
+    if ! "$VENV_DIR/bin/python" -m pip install --quiet ".[ctk,pyside6]"; then
+        "$VENV_DIR/bin/python" -m pip install --quiet ".[ctk]" || exit 1
+    fi
+else
+    "$VENV_DIR/bin/python" -m pip install --quiet ".[ctk]" || exit 1
+fi
+cd - >/dev/null
+
+# --- yt-dlp -----------------------------------------------------------------
+mkdir -p "$(dirname "$YTDLP")"
+if [ ! -x "$YTDLP" ]; then
+    ASSET="yt-dlp_linux_aarch64"
+    case "$ARCH" in
+        x86_64|amd64) ASSET="yt-dlp_linux" ;;
+        armv7l|armv7) ASSET="yt-dlp_linux_armv7l" ;;
+    esac
+    if curl -fL --retry 3 "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$ASSET" -o "$YTDLP"; then
+        chmod +x "$YTDLP"
+    else
+        rm -f "$YTDLP"
+    fi
+fi
+
+# --- JS runtime check (deno or node) ---------------------------------------
+if ! command -v deno >/dev/null 2>&1 && ! command -v node >/dev/null 2>&1; then
+    echo "NOTE: install deno or node for full YouTube access with yt-dlp."
+    echo "      Example: sudo apt install -y nodejs   (or: curl -fsSL https://deno.land/install.sh | sh)"
+fi
+
+# --- launcher script --------------------------------------------------------
+mkdir -p "$BIN_DIR"
+cat > "$BIN_DIR/sdlyt" <<EOF
+#!/bin/sh
+exec "$VENV_DIR/bin/python" -m sdlyt "\$@"
+EOF
+chmod 755 "$BIN_DIR/sdlyt"
+
+# --- desktop entry + icon ---------------------------------------------------
+mkdir -p "$HOME/.local/share/applications"
+cat > "$HOME/.local/share/applications/sdlyt.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Super Duper Lite YT
+GenericName=YouTube player and downloader
+Comment=Search, play and download YouTube videos
+Exec=$BIN_DIR/sdlyt
+Icon=sdlyt
+StartupWMClass=Sdlyt
+Terminal=false
+Categories=AudioVideo;Video;Player;Network;
+Keywords=youtube;video;music;download;mpv;
+StartupNotify=false
+EOF
+chmod 644 "$HOME/.local/share/applications/sdlyt.desktop"
+
+ICON_DIR="$HOME/.local/share/icons/hicolor"
+mkdir -p "$ICON_DIR/scalable/apps" "$ICON_DIR/256x256/apps"
+if [ -f "$APP_DIR/packaging/icons/sdlyt.svg" ]; then
+    cp "$APP_DIR/packaging/icons/sdlyt.svg" "$ICON_DIR/scalable/apps/sdlyt.svg"
+fi
+if [ -f "$APP_DIR/tools/make_icons.py" ] && "$VENV_DIR/bin/python" -c "import PIL" >/dev/null 2>&1; then
+    "$VENV_DIR/bin/python" "$APP_DIR/tools/make_icons.py" \
+        --png "$ICON_DIR/256x256/apps/sdlyt.png" --size 256 || true
+fi
+
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -t "$ICON_DIR" >/dev/null 2>&1 || true
+
+echo "Done. Launch from the app menu or run: $BIN_DIR/sdlyt"

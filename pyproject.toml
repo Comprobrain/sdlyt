@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdlyt"
+dynamic = ["version"]
+description = "Super Duper Lite YT - a tiny, fast, touch-friendly YouTube client"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Super Duper Lite YT contributors" }]
+keywords = ["youtube", "yt-dlp", "mpv", "raspberry-pi", "customtkinter", "pyside6"]
+classifiers = [
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video",
+]
+
+dependencies = [
+    "psutil>=5.9",
+    "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+ctk = ["customtkinter>=5.2"]
+pyside6 = [
+    "PySide6>=6.6; (platform_machine == 'x86_64' or platform_machine == 'amd64' or platform_machine == 'aarch64' or platform_machine == 'arm64')",
+]
+ui = [
+    "customtkinter>=5.2",
+    "PySide6>=6.6; (platform_machine == 'x86_64' or platform_machine == 'amd64' or platform_machine == 'aarch64' or platform_machine == 'arm64')",
+]
+
+[project.scripts]
+sdlyt = "sdlyt.launcher:main"
+
+[project.urls]
+Homepage = "https://github.com/GITHUB_USER/sdlyt"
+Source = "https://github.com/GITHUB_USER/sdlyt"
+
+[tool.setuptools.dynamic]
+version = { attr = "sdlyt.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["sdlyt*"]
+
+[tool.setuptools.package-data]
+sdlyt = ["**/*.py"]

@@ -1,0 +1,10 @@
+# Core dependencies (always installed)
+psutil>=5.9
+Pillow>=9.0
+
+# CustomTkinter UI (works everywhere Python + Tk work)
+customtkinter>=5.2
+
+# PySide6 UI: wheels exist only for 64-bit x86 and 64-bit ARM.
+# install.sh additionally skips this on machines under 1.9 GB RAM.
+PySide6>=6.6; (platform_machine == "x86_64" or platform_machine == "amd64" or platform_machine == "aarch64" or platform_machine == "arm64")

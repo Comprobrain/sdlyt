@@ -1,0 +1,45 @@
+#!/bin/bash
+# Pi-Apps uninstall script for Super Duper Lite YT
+# Pi-Apps rules: do NOT source api. Use purge_packages and error directly.
+#
+# EDIT ME before submitting: GITHUB_USER and REPO (informational only).
+
+set -e
+VERSION="1.1.0"
+GITHUB_USER="GITHUB_USER"       # <-- EDIT ME
+REPO="sdlyt"                    # <-- EDIT ME if your repo name differs
+
+APP_HOME="$HOME/.local/share/sdlyt"
+BIN_DIR="$HOME/.local/bin"
+USER_DATA="$HOME/.sdlyt"
+OUT_DIR="$HOME/Downloads/YT"
+
+purge_packages || exit 1
+
+rm -rf "$APP_HOME"
+rm -f "$BIN_DIR/sdlyt"
+rm -f "$HOME/.local/share/applications/sdlyt.desktop"
+rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/sdlyt.svg"
+rm -f "$HOME/.local/share/icons/hicolor/256x256/apps/sdlyt.png"
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+fi
+
+if [ -d "$USER_DATA" ] || [ -d "$OUT_DIR" ]; then
+    if [ -t 0 ]; then
+        read -rp "Also delete settings, history and downloads? [y/N] " ans
+        case "${ans:-n}" in
+            y|Y) rm -rf "$USER_DATA" "$OUT_DIR"; echo "Removed user data." ;;
+            *)   echo "Kept user data in $USER_DATA and $OUT_DIR." ;;
+        esac
+    else
+        echo "Kept user data in $USER_DATA and $OUT_DIR (run interactively to delete)."
+    fi
+fi
+
+echo "yt-dlp in ~/bin was left in place (may be shared with other tools)."
+echo "Uninstall complete."
