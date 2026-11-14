@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdlyt"
-dynamic = ["1.1.0"]
+dynamic = ["1.1.1"]
 description = "Super Duper Lite YT - a tiny, fast, touch-friendly YouTube client"
 readme = "README.md"
 requires-python = ">=3.8"
