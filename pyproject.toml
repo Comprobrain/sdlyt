@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdlyt"
-dynamic = ["version"]
+dynamic = ["1.1.0"]
 description = "Super Duper Lite YT - a tiny, fast, touch-friendly YouTube client"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -41,9 +41,6 @@ sdlyt = "sdlyt.launcher:main"
 [project.urls]
 Homepage = "https://github.com/GITHUB_USER/sdlyt"
 Source = "https://github.com/GITHUB_USER/sdlyt"
-
-[tool.setuptools.dynamic]
-version = { attr = "sdlyt.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["sdlyt*"]
